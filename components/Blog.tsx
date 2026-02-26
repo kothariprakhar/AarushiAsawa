@@ -35,6 +35,9 @@ const Blog: React.FC = () => {
   const [isSavingManual, setIsSavingManual] = useState(false);
   const [sourceUrl, setSourceUrl] = useState('');
   const [isGeneratingFromLink, setIsGeneratingFromLink] = useState(false);
+  const [uploadedImageDataUrl, setUploadedImageDataUrl] = useState('');
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const manualEditorRef = useRef<HTMLDivElement | null>(null);
   const ownerEmail = import.meta.env.VITE_OWNER_EMAIL?.toLowerCase();
 
@@ -127,6 +130,132 @@ const Blog: React.FC = () => {
     await supabase.auth.signOut();
   };
 
+  const getSeedImageUrl = (seedText: string) => {
+    const seed = encodeURIComponent(
+      seedText
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .slice(0, 80) || 'journal-post'
+    );
+    return `https://picsum.photos/seed/${seed}/400/300`;
+  };
+
+  const estimateDataUrlBytes = (dataUrl: string) => {
+    const payload = dataUrl.split(',')[1] || '';
+    return Math.ceil((payload.length * 3) / 4);
+  };
+
+  const compressImageDataUrl = (inputDataUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        const maxDimension = 1200;
+        const scaleRatio = Math.min(maxDimension / image.width, maxDimension / image.height, 1);
+        const targetWidth = Math.max(1, Math.round(image.width * scaleRatio));
+        const targetHeight = Math.max(1, Math.round(image.height * scaleRatio));
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+          reject(new Error('Could not create canvas context.'));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, targetWidth, targetHeight);
+        resolve(canvas.toDataURL('image/webp', 0.72));
+      };
+      image.onerror = () => reject(new Error('Could not process image.'));
+      image.src = inputDataUrl;
+    });
+  };
+
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+          return;
+        }
+        reject(new Error('Could not read image file.'));
+      };
+      reader.onerror = () => reject(new Error('Could not read image file.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const resolveCoverImage = async (seedText: string) => {
+    if (uploadedImageDataUrl) return uploadedImageDataUrl;
+
+    const aiImage = await generatePaintedImage(seedText);
+    if (aiImage) {
+      if (aiImage.startsWith('data:image/')) {
+        try {
+          return await compressImageDataUrl(aiImage);
+        } catch {
+          return aiImage;
+        }
+      }
+      return aiImage;
+    }
+
+    return getSeedImageUrl(seedText);
+  };
+
+  const resetEditorState = () => {
+    setNewTopic('');
+    setManualTitle('');
+    setManualContent('');
+    setSourceUrl('');
+    setUploadedImageDataUrl('');
+    setImageUploadError('');
+    setIsProcessingImage(false);
+    if (manualEditorRef.current) {
+      manualEditorRef.current.innerHTML = '';
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImageUploadError('');
+
+    if (!file.type.startsWith('image/')) {
+      setImageUploadError('Please upload a valid image file.');
+      return;
+    }
+
+    if (file.size > 4 * 1024 * 1024) {
+      setImageUploadError('Please upload an image smaller than 4MB.');
+      return;
+    }
+
+    setIsProcessingImage(true);
+    try {
+      const originalDataUrl = await fileToDataUrl(file);
+      const compressedDataUrl = await compressImageDataUrl(originalDataUrl);
+      const compressedSize = estimateDataUrlBytes(compressedDataUrl);
+
+      if (compressedSize > 900 * 1024) {
+        setImageUploadError('Compressed image is still too large. Please upload a smaller image.');
+        setUploadedImageDataUrl('');
+      } else {
+        setUploadedImageDataUrl(compressedDataUrl);
+      }
+    } catch {
+      setImageUploadError('Could not read image file. Please try again.');
+    } finally {
+      setIsProcessingImage(false);
+    }
+
+    event.target.value = '';
+  };
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTopic.trim() || !isOwner) return;
@@ -136,17 +265,15 @@ const Blog: React.FC = () => {
         // 1. Generate Content
         const contentData = await generateBlogContent(newTopic);
         
-        // 2. Generate an "Artistic" Cover Image
-        const image = await generatePaintedImage(newTopic);
-
         if (contentData) {
+          const image = await resolveCoverImage(contentData.title || newTopic);
           const postDate = new Date().toLocaleDateString();
           const { error } = await supabase.from('blog_posts').insert({
             title: contentData.title,
             content: contentData.content,
             date: postDate,
             tags: ['Thoughts', 'Eco'],
-            image_url: image || `https://picsum.photos/400/300?random=${Date.now()}`,
+            image_url: image,
           });
 
           if (error) {
@@ -154,7 +281,7 @@ const Blog: React.FC = () => {
           }
 
           await loadPosts();
-          setNewTopic('');
+          resetEditorState();
           setIsCreating(false);
         }
     } catch (error) {
@@ -171,23 +298,20 @@ const Blog: React.FC = () => {
 
     setIsSavingManual(true);
     try {
+      const image = await resolveCoverImage(`${manualTitle} ${manualContent.slice(0, 120)}`);
       const postDate = new Date().toLocaleDateString();
       const { error } = await supabase.from('blog_posts').insert({
         title: manualTitle.trim(),
         content: manualContent.trim(),
         date: postDate,
         tags: ['Manual', 'Journal'],
-        image_url: `https://picsum.photos/400/300?random=${Date.now()}`,
+        image_url: image,
       });
 
       if (error) throw error;
 
       await loadPosts();
-      setManualTitle('');
-      setManualContent('');
-      if (manualEditorRef.current) {
-        manualEditorRef.current.innerHTML = '';
-      }
+      resetEditorState();
       setIsCreating(false);
     } catch (error) {
       console.error('Failed to save manual post', error);
@@ -208,20 +332,20 @@ const Blog: React.FC = () => {
         throw new Error('Could not generate content from link');
       }
 
-      const image = await generatePaintedImage(contentData.title);
+      const image = await resolveCoverImage(contentData.title);
       const postDate = new Date().toLocaleDateString();
       const { error } = await supabase.from('blog_posts').insert({
         title: contentData.title,
         content: contentData.content,
         date: postDate,
         tags: ['Imported', 'Journal'],
-        image_url: image || `https://picsum.photos/400/300?random=${Date.now()}`,
+        image_url: image,
       });
 
       if (error) throw error;
 
       await loadPosts();
-      setSourceUrl('');
+      resetEditorState();
       setIsCreating(false);
     } catch (error) {
       console.error('Failed to create post from link', error);
@@ -348,6 +472,31 @@ const Blog: React.FC = () => {
             >
               From Link
             </button>
+           </div>
+
+           <div className="relative z-10 mb-6 p-4 rounded-2xl border border-earth-200 bg-earth-50/70">
+            <p className="text-sm font-medium text-earth-800 mb-2">Cover Image (optional)</p>
+            <p className="text-xs text-earth-800/60 mb-3">Upload an image to attach to this post. If not uploaded, a cover is generated from the post content.</p>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="block w-full text-sm text-earth-800 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-earth-800 file:text-white hover:file:bg-earth-900"
+            />
+            {isProcessingImage && <p className="text-xs text-earth-800/60 mt-2">Compressing image...</p>}
+            {imageUploadError && <p className="text-xs text-red-600 mt-2">{imageUploadError}</p>}
+            {uploadedImageDataUrl && (
+              <div className="mt-3">
+                <img src={uploadedImageDataUrl} alt="Uploaded cover preview" className="h-28 w-40 object-cover rounded-xl border border-earth-200" />
+                <button
+                  type="button"
+                  onClick={() => setUploadedImageDataUrl('')}
+                  className="mt-2 text-xs text-red-600 hover:text-red-700"
+                >
+                  Remove uploaded image
+                </button>
+              </div>
+            )}
            </div>
 
            {createMode === 'ai' && (
