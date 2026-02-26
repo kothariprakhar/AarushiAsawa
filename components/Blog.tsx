@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BlogPost } from '../types';
-import { generateBlogContent, generatePaintedImage } from '../services/geminiService';
+import { generateBlogContent, generateBlogContentFromLink, generatePaintedImage } from '../services/geminiService';
 import { supabase } from '../services/supabase';
 import type { Session } from '@supabase/supabase-js';
-import { Plus, Loader2, Calendar, Sparkles, X, ArrowRight, Trash2 } from 'lucide-react';
+import { Plus, Loader2, Calendar, Sparkles, X, ArrowRight, Trash2, Bold, Italic, Underline, List } from 'lucide-react';
 
 type DbBlogPost = {
   id: string;
@@ -25,10 +25,17 @@ const Blog: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [authError, setAuthError] = useState('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [createMode, setCreateMode] = useState<'ai' | 'manual' | 'link'>('ai');
   
   // Creation form state
   const [newTopic, setNewTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [manualTitle, setManualTitle] = useState('');
+  const [manualContent, setManualContent] = useState('');
+  const [isSavingManual, setIsSavingManual] = useState(false);
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [isGeneratingFromLink, setIsGeneratingFromLink] = useState(false);
+  const manualEditorRef = useRef<HTMLDivElement | null>(null);
   const ownerEmail = import.meta.env.VITE_OWNER_EMAIL?.toLowerCase();
 
   const isOwner = useMemo(() => {
@@ -158,6 +165,77 @@ const Blog: React.FC = () => {
     }
   };
 
+  const handleSaveManualPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOwner || !manualTitle.trim() || !manualContent.trim()) return;
+
+    setIsSavingManual(true);
+    try {
+      const postDate = new Date().toLocaleDateString();
+      const { error } = await supabase.from('blog_posts').insert({
+        title: manualTitle.trim(),
+        content: manualContent.trim(),
+        date: postDate,
+        tags: ['Manual', 'Journal'],
+        image_url: `https://picsum.photos/400/300?random=${Date.now()}`,
+      });
+
+      if (error) throw error;
+
+      await loadPosts();
+      setManualTitle('');
+      setManualContent('');
+      if (manualEditorRef.current) {
+        manualEditorRef.current.innerHTML = '';
+      }
+      setIsCreating(false);
+    } catch (error) {
+      console.error('Failed to save manual post', error);
+      alert('Could not save manual post. Please try again.');
+    } finally {
+      setIsSavingManual(false);
+    }
+  };
+
+  const handleCreateFromLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isOwner || !sourceUrl.trim()) return;
+
+    setIsGeneratingFromLink(true);
+    try {
+      const contentData = await generateBlogContentFromLink(sourceUrl.trim());
+      if (!contentData) {
+        throw new Error('Could not generate content from link');
+      }
+
+      const image = await generatePaintedImage(contentData.title);
+      const postDate = new Date().toLocaleDateString();
+      const { error } = await supabase.from('blog_posts').insert({
+        title: contentData.title,
+        content: contentData.content,
+        date: postDate,
+        tags: ['Imported', 'Journal'],
+        image_url: image || `https://picsum.photos/400/300?random=${Date.now()}`,
+      });
+
+      if (error) throw error;
+
+      await loadPosts();
+      setSourceUrl('');
+      setIsCreating(false);
+    } catch (error) {
+      console.error('Failed to create post from link', error);
+      alert('Could not generate from this link. Please check the URL and try again.');
+    } finally {
+      setIsGeneratingFromLink(false);
+    }
+  };
+
+  const applyEditorFormat = (command: 'bold' | 'italic' | 'underline' | 'insertUnorderedList') => {
+    document.execCommand(command);
+    manualEditorRef.current?.focus();
+  };
+
   const handleDeletePost = async (postId: string) => {
     if (!isOwner) return;
 
@@ -245,30 +323,113 @@ const Blog: React.FC = () => {
            {/* Decorative background element */}
            <div className="absolute top-0 right-0 w-64 h-64 bg-eco-light/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
-           <h3 className="text-xl font-bold mb-4 flex items-center text-earth-800 relative z-10"><Sparkles size={18} className="mr-2 text-eco-green"/> AI Writer Assistant</h3>
-           <p className="text-sm text-gray-500 mb-6 relative z-10">Enter a topic, and I will generate a drafted blog post and a unique painting for the cover.</p>
-           
-           <form onSubmit={handleCreatePost} className="flex flex-col sm:flex-row gap-4 relative z-10">
-              <input 
-                type="text" 
+           <h3 className="text-xl font-bold mb-4 flex items-center text-earth-800 relative z-10"><Sparkles size={18} className="mr-2 text-eco-green"/> Journal Editor</h3>
+           <p className="text-sm text-gray-500 mb-6 relative z-10">Choose how you want to create a post: AI prompt, manual writing, or import from a link.</p>
+
+           <div className="flex flex-wrap gap-2 mb-6 relative z-10">
+            <button
+              type="button"
+              onClick={() => setCreateMode('ai')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${createMode === 'ai' ? 'bg-earth-800 text-white' : 'bg-earth-100 text-earth-800 hover:bg-earth-200'}`}
+            >
+              AI Generator
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateMode('manual')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${createMode === 'manual' ? 'bg-earth-800 text-white' : 'bg-earth-100 text-earth-800 hover:bg-earth-200'}`}
+            >
+              Manual Write
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateMode('link')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${createMode === 'link' ? 'bg-earth-800 text-white' : 'bg-earth-100 text-earth-800 hover:bg-earth-200'}`}
+            >
+              From Link
+            </button>
+           </div>
+
+           {createMode === 'ai' && (
+            <form onSubmit={handleCreatePost} className="flex flex-col sm:flex-row gap-4 relative z-10">
+              <input
+                type="text"
                 value={newTopic}
                 onChange={(e) => setNewTopic(e.target.value)}
                 placeholder="Topic e.g., Reducing plastic in ocean freight..."
                 className="flex-1 px-6 py-4 border border-earth-200 bg-earth-50 rounded-2xl focus:ring-2 focus:ring-eco-green focus:border-transparent outline-none transition-shadow"
               />
-              
-              {/* Innovative Generate Button */}
-              <button 
-                type="submit" 
+
+              <button
+                type="submit"
                 disabled={isGenerating || !newTopic}
                 className="group flex items-center pl-1.5 pr-6 py-1.5 bg-eco-green text-white rounded-full font-medium hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md min-w-[160px] justify-center"
               >
-                 <div className="bg-white/20 p-2.5 rounded-full mr-3 group-hover:scale-110 transition-transform">
-                    {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
-                 </div>
+                <div className="bg-white/20 p-2.5 rounded-full mr-3 group-hover:scale-110 transition-transform">
+                  {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                </div>
                 <span>{isGenerating ? 'Creating...' : 'Generate'}</span>
               </button>
-           </form>
+            </form>
+           )}
+
+           {createMode === 'manual' && (
+            <form onSubmit={handleSaveManualPost} className="relative z-10 space-y-4">
+              <input
+                type="text"
+                value={manualTitle}
+                onChange={(e) => setManualTitle(e.target.value)}
+                placeholder="Post title"
+                className="w-full px-4 py-3 border border-earth-200 bg-earth-50 rounded-2xl focus:ring-2 focus:ring-eco-green focus:border-transparent outline-none"
+              />
+
+              <div className="border border-earth-200 rounded-2xl overflow-hidden">
+                <div className="flex items-center gap-1 p-2 border-b border-earth-200 bg-earth-50">
+                  <button type="button" onClick={() => applyEditorFormat('bold')} className="p-2 rounded-lg hover:bg-earth-200" title="Bold"><Bold size={16} /></button>
+                  <button type="button" onClick={() => applyEditorFormat('italic')} className="p-2 rounded-lg hover:bg-earth-200" title="Italic"><Italic size={16} /></button>
+                  <button type="button" onClick={() => applyEditorFormat('underline')} className="p-2 rounded-lg hover:bg-earth-200" title="Underline"><Underline size={16} /></button>
+                  <button type="button" onClick={() => applyEditorFormat('insertUnorderedList')} className="p-2 rounded-lg hover:bg-earth-200" title="Bulleted list"><List size={16} /></button>
+                </div>
+                <div
+                  ref={manualEditorRef}
+                  contentEditable
+                  onInput={(e) => setManualContent(e.currentTarget.innerText)}
+                  className="min-h-[220px] p-4 text-sm text-earth-800 outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingManual || !manualTitle.trim() || !manualContent.trim()}
+                className="px-6 py-2.5 bg-eco-green text-white rounded-full font-medium hover:bg-green-800 transition-colors disabled:opacity-50"
+              >
+                {isSavingManual ? 'Saving...' : 'Publish Manual Entry'}
+              </button>
+            </form>
+           )}
+
+           {createMode === 'link' && (
+            <form onSubmit={handleCreateFromLink} className="flex flex-col sm:flex-row gap-4 relative z-10">
+              <input
+                type="url"
+                value={sourceUrl}
+                onChange={(e) => setSourceUrl(e.target.value)}
+                placeholder="Paste LinkedIn or blog post URL"
+                className="flex-1 px-6 py-4 border border-earth-200 bg-earth-50 rounded-2xl focus:ring-2 focus:ring-eco-green focus:border-transparent outline-none transition-shadow"
+              />
+
+              <button
+                type="submit"
+                disabled={isGeneratingFromLink || !sourceUrl.trim()}
+                className="group flex items-center pl-1.5 pr-6 py-1.5 bg-eco-green text-white rounded-full font-medium hover:bg-green-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md min-w-[220px] justify-center"
+              >
+                <div className="bg-white/20 p-2.5 rounded-full mr-3 group-hover:scale-110 transition-transform">
+                  {isGeneratingFromLink ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                </div>
+                <span>{isGeneratingFromLink ? 'Generating...' : 'Generate From Link'}</span>
+              </button>
+            </form>
+           )}
         </div>
       )}
 

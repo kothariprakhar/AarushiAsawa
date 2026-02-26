@@ -1,5 +1,22 @@
 import { GoogleGenAI } from "@google/genai";
 
+const parseJsonResponse = (input: string): { title: string; content: string } | null => {
+  const cleaned = input.replace(/```json|```/g, '').trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    try {
+      return JSON.parse(jsonMatch[0]);
+    } catch {
+      return null;
+    }
+  }
+};
+
 // Helper to handle the mandatory API key selection for premium models like gemini-3-pro-image-preview
 export const ensureApiKey = async (): Promise<boolean> => {
   if (window.aistudio && window.aistudio.hasSelectedApiKey) {
@@ -70,11 +87,55 @@ export const generateBlogContent = async (topic: string): Promise<{ title: strin
 
     const text = response.text;
     if (text) {
-      return JSON.parse(text);
+      return parseJsonResponse(text);
     }
     return null;
   } catch (error) {
     console.error("Error generating blog:", error);
+    return null;
+  }
+};
+
+export const generateBlogContentFromLink = async (url: string): Promise<{ title: string; content: string } | null> => {
+  try {
+    await ensureApiKey();
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const normalizedUrl = url.trim();
+    const readableUrl = `https://r.jina.ai/http://${normalizedUrl.replace(/^https?:\/\//, '')}`;
+
+    const sourceResponse = await fetch(readableUrl);
+    if (!sourceResponse.ok) {
+      throw new Error(`Could not fetch source content from URL: ${sourceResponse.status}`);
+    }
+
+    const sourceText = await sourceResponse.text();
+    const excerpt = sourceText.slice(0, 15000);
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Create a polished, first-person blog entry suitable for a sustainability consultant's website based on this source URL and extracted text.
+
+URL: ${normalizedUrl}
+
+SOURCE TEXT:
+${excerpt}
+
+Return strict JSON with exactly these keys: "title" and "content".
+Make the writing human, thoughtful, and ready to publish.`,
+      config: {
+        responseMimeType: "application/json",
+      }
+    });
+
+    const text = response.text;
+    if (text) {
+      return parseJsonResponse(text);
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error generating blog from link:", error);
     return null;
   }
 };
