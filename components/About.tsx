@@ -1,61 +1,68 @@
 import React from 'react';
 import { Project } from '../types';
-import { Download, Briefcase, Award, MapPin, GraduationCap, Trophy, Building2, Calendar } from 'lucide-react';
+import { Download, Briefcase, Award, MapPin, GraduationCap, Trophy, Building2, Calendar, BadgeCheck } from 'lucide-react';
 import aarushiImage from '../images/Aaru_prof.jpg';
+import cvFile from '../docs/Aarushi_Asawa_CV.pdf';
 
 const projects: Project[] = [
   {
     id: '1',
-    title: 'ISO 20121 Sustainability Leadership',
-    client: 'Major Sports Organization',
-    description: 'Implemented ISO 20121 framework driving 35% emissions reduction. Established sustainable fan travel, circular waste processing, and solar energy efficiency, earning 7 international sustainability awards.',
-    impact: '35% Emissions Cut',
+    title: 'ISO 14001/20121 Event Sustainability',
+    client: 'Premier League, Motorsport & EFC',
+    description: 'Implemented ISO 14001/20121 event sustainability frameworks across global events, embedding circular operations and stakeholder engagement to achieve 28% waste reduction, 90% water recycling and 96% renewable energy adoption.',
+    impact: '96% Renewable Energy',
   },
   {
     id: '2',
-    title: 'Global Supply Chain Transformation',
-    client: 'Beverage Giant (Fortune 500)',
-    description: 'Led performance improvement across 10+ countries. Streamlined Order-to-Cash workstream using S/4 HANA, achieving £1bn in working capital savings and 40% reduction in manual inefficiencies.',
-    impact: '£1bn+ Capital Saved',
+    title: 'Global Finance & Supply Chain Transformation',
+    client: 'FTSE 50 Clients',
+    description: 'Managed 15+ AI-enabled strategic transformations, redesigning operating models and processes to strengthen supply chain resilience, improving operational efficiency by 40% and unlocking £4bn+ in working capital.',
+    impact: '£4bn+ Capital Unlocked',
   },
   {
     id: '3',
-    title: 'Net Zero Carbon Strategy',
-    client: 'Global Sports Governance',
-    description: 'Pioneered first-ever carbon accounting and reporting systems aligned with Net Zero 2050. Facilitated workshops for carbon hotspot analysis to meet science-based targets.',
-    impact: 'Net Zero Roadmap',
+    title: 'Net Zero & Climate Transition Strategy',
+    client: 'Fortune 500 Clients',
+    description: 'Developed 5+ Net Zero strategies and climate transition plans aligned with SBTi and TPT, using decarbonisation scenario analysis and GHG Protocol-aligned carbon accounting across Scopes 1-3 to prioritise emissions abatement.',
+    impact: '30% Emissions Cut',
   },
 ];
 
 const experience = [
   {
-      role: "Manager – Sustainable Operations",
+      role: "Manager – Sustainability Strategy & Transformation",
       company: "Think Beyond",
       location: "London, UK",
       period: "Mar 2024 – Present",
-      description: "Spearheading sustainability transformation for Fortune 500s and Premier League clubs. Delivering Scope 1-3 Net Zero pathways, ISO 20121/14001 frameworks, and circular economy strategies."
+      description: "Spearheading 15+ sustainability transformations for Fortune 500 clients across 7+ industries. Delivering SBTi-aligned Net Zero pathways, ISSB/CSRD reporting, Scope 1-3 carbon accounting, ISO 20121/14001 frameworks, and circular economy strategies."
   },
   {
-      role: "Management Consultant",
+      role: "Management Consultant – Finance Transformation",
       company: "KPMG Global Services",
       location: "London, UK",
       period: "Nov 2019 – Jun 2022",
-      description: "Managed 15+ finance transformation projects cutting inefficiencies by 40%. Led circular operating model design and cross-functional programs for $7bn revenue portfolios."
+      description: "Managed 15+ AI-enabled transformations for FTSE 50 clients, improving efficiency by 40% and unlocking £4bn+ in working capital. Led circular, low-carbon operating model design across £6bn revenue portfolios."
   },
   {
       role: "Assistant Manager - Risk Advisory",
       company: "AMP & Co.",
       location: "Jaipur, India",
       period: "Aug 2018 – Nov 2019",
-      description: "Delivered £3mn+ savings through resource optimization and governance structures. Conducted enterprise risk assessments enhancing operational resilience."
+      description: "Delivered £400k+ savings through resource optimisation and sustainable supply chain initiatives across 10 geographies. Conducted enterprise risk and double materiality assessments enhancing operational resilience."
   },
   {
       role: "Audit Executive, Assurance Services",
       company: "Ernst & Young",
       location: "New Delhi, India",
       period: "Jun 2014 – Jun 2017",
-      description: "Managed statutory audits for S&P 500 firms. Identified process inefficiencies driving £1mn+ in cost savings and improved working capital efficiency by 15%."
+      description: "Managed 20+ audits and performance improvement projects for multinationals across 7 industries. Identified process inefficiencies driving £1mn+ in cost savings and improved working capital efficiency by 15%."
   }
+];
+
+const certifications = [
+  { name: "REnvP", detail: "Registered Environmental Practitioner · Dec 2024" },
+  { name: "Impact Investing", detail: "Diploma, IE Business School · Jun 2023" },
+  { name: "Lean Six Sigma", detail: "Green Belt · Dec 2021" },
 ];
 
 const About: React.FC = () => {
@@ -95,10 +102,10 @@ const About: React.FC = () => {
           
           <div className="space-y-4 text-earth-800/80 leading-relaxed text-lg font-light">
             <p>
-              I am a <strong>Sustainability Consultant</strong> and <strong>Chartered Accountant</strong> with a unique blend of financial acumen and environmental expertise. Currently, I serve as a Manager for Sustainable Operations at <em>Think Beyond</em>, where I help global organizations in sport, retail, and entertainment navigate the transition to a regenerative future.
+              I am a <strong>Sustainability Consultant</strong> and <strong>Chartered Accountant</strong> with a unique blend of financial acumen and environmental expertise. Currently, I serve as a Manager for Sustainability Strategy and Transformation at <em>Think Beyond</em>, where I help Fortune 500 organizations across sport, retail, entertainment and beyond navigate the transition to a regenerative future.
             </p>
             <p>
-              My journey spans from rigorous financial auditing at <strong>EY</strong> and management consulting at <strong>KPMG</strong> to leading circularity transformations. I hold an MBA with specialization in Sustainability from <strong>Imperial College London</strong> and was a national topper in my Chartered Accountancy exams.
+              My journey spans from rigorous financial auditing at <strong>EY</strong> and management consulting at <strong>KPMG</strong> to leading circularity transformations. I hold an MBA with specialization in Sustainability from <strong>Imperial College London</strong> and ranked in the top 1% nationally in my Chartered Accountancy exams.
             </p>
             <p>
               Beyond the boardroom, I am a former <strong>National Table Tennis Champion</strong> and the founder of <em>Club Khel</em>, a social enterprise impacting thousands of children in India. I believe in high performance, whether on the court, in the spreadsheet, or for the planet.
@@ -106,12 +113,12 @@ const About: React.FC = () => {
           </div>
           
           <div className="pt-6">
-             <button className="group flex items-center pl-1.5 pr-6 py-1.5 bg-earth-800 text-white rounded-full transition-all hover:bg-earth-900 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+             <a href={cvFile} download="Aarushi_Asawa_CV.pdf" className="group inline-flex items-center pl-1.5 pr-6 py-1.5 bg-earth-800 text-white rounded-full transition-all hover:bg-earth-900 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
                <div className="bg-white/10 p-2.5 rounded-full mr-3 group-hover:bg-white/20 transition-colors">
                  <Download size={20} />
                </div>
                <span className="font-medium tracking-wide">Download CV</span>
-             </button>
+             </a>
           </div>
         </div>
       </div>
@@ -200,6 +207,7 @@ const About: React.FC = () => {
                     <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-earth-300 border-4 border-earth-50 group-hover:scale-125 group-hover:bg-eco-green transition-all"></div>
                     <h4 className="font-bold text-earth-800">Shri Ram College of Commerce (SRCC)</h4>
                     <p className="text-sm text-earth-600">Bachelor of Commerce (Hons)</p>
+                    <p className="text-xs text-eco-green font-medium mt-1">Distinction, First-Class Honours</p>
                 </li>
                 <li className="relative pl-6 border-l-2 border-earth-200 group hover:border-eco-green transition-colors">
                     <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-earth-300 border-4 border-earth-50 group-hover:scale-125 group-hover:bg-eco-green transition-all"></div>
@@ -207,6 +215,24 @@ const About: React.FC = () => {
                     <p className="text-sm text-earth-600">Executive Masters in Sports Management</p>
                 </li>
             </ul>
+
+            {/* Certifications — tucked beneath education, details revealed on hover/tap */}
+            <div className="pl-6 pt-2">
+                <p className="text-[11px] uppercase tracking-widest font-bold text-earth-600/70 mb-3">Also certified in</p>
+                <div className="flex flex-wrap gap-2">
+                    {certifications.map((cert) => (
+                        <div key={cert.name} tabIndex={0} className="group/cert relative outline-none">
+                            <span className="flex items-center gap-1.5 text-xs font-medium text-earth-800/80 px-3 py-1 rounded-full border border-dashed border-earth-800/20 cursor-default transition-colors duration-300 group-hover/cert:border-eco-green group-hover/cert:text-eco-green group-focus/cert:border-eco-green group-focus/cert:text-eco-green">
+                                <BadgeCheck size={14} />
+                                {cert.name}
+                            </span>
+                            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 whitespace-nowrap rounded-lg bg-earth-800 text-white text-[11px] px-3 py-1.5 shadow-lg opacity-0 translate-y-1 transition-all duration-300 group-hover/cert:opacity-100 group-hover/cert:translate-y-0 group-focus/cert:opacity-100 group-focus/cert:translate-y-0 z-10">
+                                {cert.detail}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
 
         {/* Leadership & Awards */}
@@ -222,7 +248,7 @@ const About: React.FC = () => {
                     </div>
                     <div>
                         <h4 className="font-bold text-earth-800 text-sm">Founder, Club Khel</h4>
-                        <p className="text-xs text-earth-600 mt-1">Social enterprise impacting 4,000+ students across 40+ cities in India through play-based education.</p>
+                        <p className="text-xs text-earth-600 mt-1">Social enterprise aligned with SDG3 & SDG4, impacting 4,000+ students across 40+ cities in India through play-based education and improving learning outcomes by 30%.</p>
                     </div>
                 </div>
                  <div className="bg-earth-100/50 p-4 rounded-xl flex items-start gap-3 hover:bg-earth-100 transition-colors group">
@@ -231,7 +257,7 @@ const About: React.FC = () => {
                     </div>
                     <div>
                         <h4 className="font-bold text-earth-800 text-sm">National Sports Champion</h4>
-                        <p className="text-xs text-earth-600 mt-1">Table Tennis U-16 National Champion and ranked Top 10 All-India women players.</p>
+                        <p className="text-xs text-earth-600 mt-1">Table Tennis U-16 National Champion, ranked Top 10 All-India women players, and recipient of the ‘Chacha Nehru Sports Award’.</p>
                     </div>
                 </div>
                 <div className="bg-earth-100/50 p-4 rounded-xl flex items-start gap-3 hover:bg-earth-100 transition-colors group">
