@@ -15,7 +15,11 @@ type DbBlogPost = {
   created_at: string;
 };
 
-const Blog: React.FC = () => {
+interface BlogProps {
+  onOpenPost?: (postId: string) => void;
+}
+
+const Blog: React.FC<BlogProps> = ({ onOpenPost }) => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
@@ -621,7 +625,10 @@ const Blog: React.FC = () => {
               
               <div className="border-t border-earth-100 pt-4 mt-auto">
                 <div className="flex items-center justify-between gap-3">
-                    <button className="text-eco-green font-bold text-sm flex items-center group/btn">
+                    <button
+                      onClick={() => onOpenPost?.(post.id)}
+                      className="text-eco-green font-bold text-sm flex items-center group/btn"
+                    >
                       Read Full Story 
                       <ArrowRight size={16} className="ml-1 group-hover/btn:translate-x-1 transition-transform" />
                     </button>

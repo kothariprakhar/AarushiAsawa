@@ -1,30 +1,94 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import About from './components/About';
 import Blog from './components/Blog';
 import { ViewState } from './types';
 import { Twitter, Linkedin, Mail } from 'lucide-react';
+import BlogPostDetail from './components/BlogPostDetail';
+
+type AppRoute = {
+  view: ViewState;
+  postId?: string;
+};
+
+const getPathForRoute = (route: AppRoute) => {
+  if (route.view === ViewState.ABOUT) return '/about';
+  if (route.view === ViewState.BLOG && route.postId) return `/journal/${route.postId}`;
+  if (route.view === ViewState.BLOG) return '/journal';
+  return '/';
+};
+
+const getRouteFromPath = (pathname: string): AppRoute => {
+  if (pathname === '/about') return { view: ViewState.ABOUT };
+  if (pathname === '/journal') return { view: ViewState.BLOG };
+
+  const journalPostMatch = pathname.match(/^\/journal\/([^/]+)$/);
+  if (journalPostMatch) {
+    return { view: ViewState.BLOG, postId: decodeURIComponent(journalPostMatch[1]) };
+  }
+
+  return { view: ViewState.HOME };
+};
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ViewState>(ViewState.HOME);
+  const [route, setRoute] = useState<AppRoute>(() => getRouteFromPath(window.location.pathname));
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setRoute(getRouteFromPath(window.location.pathname));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateToRoute = (nextRoute: AppRoute, shouldPushState = true) => {
+    setRoute(nextRoute);
+    if (shouldPushState) {
+      const nextPath = getPathForRoute(nextRoute);
+      window.history.pushState(nextRoute, '', nextPath);
+    }
+  };
+
+  const setView = (view: ViewState) => {
+    navigateToRoute({ view });
+  };
+
+  const openPost = (postId: string) => {
+    navigateToRoute({ view: ViewState.BLOG, postId });
+  };
+
+  const handleBackFromPost = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    navigateToRoute({ view: ViewState.BLOG });
+  };
+
+  const currentView = useMemo(() => route.view, [route.view]);
 
   const renderView = () => {
     switch (currentView) {
       case ViewState.HOME:
-        return <Hero setView={setCurrentView} />;
+        return <Hero setView={setView} />;
       case ViewState.ABOUT:
         return <About />;
       case ViewState.BLOG:
-        return <Blog />;
+        if (route.postId) {
+          return <BlogPostDetail postId={route.postId} onBack={handleBackFromPost} />;
+        }
+        return <Blog onOpenPost={openPost} />;
       default:
-        return <Hero setView={setCurrentView} />;
+        return <Hero setView={setView} />;
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col font-sans text-earth-800 bg-earth-50">
-      <Navbar currentView={currentView} setView={setCurrentView} />
+      <Navbar currentView={currentView} setView={setView} />
       
       <main className="flex-grow">
         {renderView()}
