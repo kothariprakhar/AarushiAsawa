@@ -48,14 +48,14 @@ const experience = [
       company: "AMP & Co.",
       location: "Jaipur, India",
       period: "Aug 2018 – Nov 2019",
-      description: "Delivered £400k+ savings through resource optimisation and sustainable supply chain initiatives across 10 geographies. Conducted enterprise risk and double materiality assessments enhancing operational resilience."
+      description: "Delivered £400k+ savings by diagnosing operational inefficiencies across 10 geographies. Advised C-suite executives on enterprise risk, supply chain resilience and climate risk, avoiding £4m in potential disruption costs."
   },
   {
       role: "Audit Executive, Assurance Services",
       company: "Ernst & Young",
       location: "New Delhi, India",
       period: "Jun 2014 – Jun 2017",
-      description: "Managed 20+ audits and performance improvement projects for multinationals across 7 industries. Identified process inefficiencies driving £1mn+ in cost savings and improved working capital efficiency by 15%."
+      description: "Managed 20+ audit and performance improvement engagements for S&P 500 clients across 7 industries. Identified opportunities driving £1mn+ in cost savings, 15% working capital improvement and ~15% margin gains."
   }
 ];
 
